@@ -1,0 +1,102 @@
+$bg-dark: #1e1e2e;
+$bg-light: #dddddd;
+
+$bg-dark-2: #2e2e3e;
+$bg-light-2: #efefef;
+
+$primary: #aaa4f4;
+$darker-primary: #8884f4;
+$secondary: lightpink;
+
+Screen {
+    align: center middle;
+    background: $bg-light;
+}
+
+Screen:dark {
+    background: $bg-dark;
+}
+
+.media-info {
+    width: 100%;
+    height: auto;
+    dock: top;
+    margin: 2 0;
+}
+
+.media-info-texts {
+    color: $text;
+    text-style: bold;
+    height: auto;
+    content-align: center middle;
+    text-align: center;
+}
+
+#artist-name {
+    color: $darker-primary;
+    margin-top: 1;
+}
+
+#album-name {
+    margin-top: 1;
+    text-opacity: 0.4;
+}
+
+#progress-bar {
+    width: 100%;
+    margin-top: 2;
+    margin-left: 40;
+}
+
+.control-buttons {
+    width: 1fr;
+    /*padding: 1 0;*/
+    background: transparent;
+    border: round $secondary;
+}
+
+.control-buttons-group {
+    width: 100%;
+    height: auto;
+    dock: bottom;
+}
+
+MediaPlayer {
+    height: 80%;
+    width: 50%;
+    min-width: 50;
+    background: $bg-light-2;
+    color: $text;
+    padding: 1 2;
+}
+
+MediaPlayer:dark {
+    background: $bg-dark-2;
+}
+
+/* FileExplorer { */
+/*     border: round $primary; */
+/*     height: 100%; */
+/*     margin: 0 3; */
+/* } */
+
+#file-explorer:dark {
+    background: $bg-dark;
+}
+
+#file-explorer {
+    background: $bg-light;
+}
+
+.files {
+    width: 100%;
+    height: 100%;
+}
+
+FileExplorer {
+    border: round $primary;
+    border-title-align: center;
+    height: 100%;
+    width: 1fr;
+    margin: 0 3;
+}

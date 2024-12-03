@@ -37,7 +37,7 @@ Screen:dark {
     margin-top: 1;
 }
 
-#album-name {
+#album {
     margin-top: 1;
     text-opacity: 0.4;
 }
@@ -62,8 +62,8 @@ Screen:dark {
 }
 
 MediaPlayer {
-    height: 80%;
-    width: 50%;
+    height: 95%;
+    width: 90%;
     min-width: 50;
     background: $bg-light-2;
     color: $text;
@@ -100,3 +100,4 @@ FileExplorer {
     width: 1fr;
     margin: 0 3;
 }
+

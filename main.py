@@ -1,6 +1,6 @@
 import argparse
 
-from gui import Proxima
+from proxima import Proxima
 
 # import os
 # os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"

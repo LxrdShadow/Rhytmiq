@@ -1,16 +1,13 @@
-import os
-from enum import Enum
-from pathlib import PosixPath
-from typing import List
+from pathlib import Path
 
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import (
     Button,
-    DirectoryTree,
     Footer,
     Header,
+    Label,
     ListItem,
     ListView,
     ProgressBar,
@@ -19,36 +16,75 @@ from textual.widgets import (
 from tinytag import TinyTag
 
 from playback import pause, play, pygame, stop, unpause
+from utils import ICON, State, get_directory_contents
 
 audio = TinyTag.get("song.mp3")
 print("Title: " + audio.title)
 print("Artist: " + audio.artist)
 
 
-class State(Enum):
-    STOPPED: int = 0
-    PLAYING: int = 1
-    PAUSED: int = 2
+class LabelItem(ListItem):
+    """Custom Label as a ListItem"""
+
+    def __init__(self, label: str, icon: str = "") -> None:
+        super().__init__()
+        self.label = label
+        self.icon = icon
+
+    def compose(self) -> ComposeResult:
+        yield Label(self.icon + self.label)
 
 
-class FileExplorer(Static):
+class FileExplorer(Container):
     """The album cover for the current media"""
 
     def __init__(self, title: str, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.title = title
+        self.path = Path.cwd()
 
     async def on_mount(self) -> None:
         self.border_title = self.title
+        await self.populate_list(self.path)
 
     def compose(self) -> ComposeResult:
-        # self.list_view = ListView(
-        #     ListItem(Static("Hello")),
-        #     *[ListItem(Static(item)) for item in os.listdir()],
-        #     id="file-explorer"
-        # )
-        self.list_view = DirectoryTree(os.getcwd(), id="file-explorer")
+        self.list_view = ListView()
+        # self.list_view = DirectoryTree(os.getcwd(), id="file-explorer")
         yield self.list_view
+        self.populate_list(self.path)
+
+    async def populate_list(self, directory: Path):
+        """Populate the ListView with files and directories"""
+        self.list_view.append(LabelItem("../", icon=ICON["directory"]))
+        try:
+            # Lazy load directory content
+            children = get_directory_contents(directory, self)
+            for chunk in range(0, len(children), 10):
+                for child in children[chunk : chunk + 10]:
+                    icon = ICON["directory"] if child.is_dir() else ICON["file"]
+                    self.list_view.append(LabelItem(child.name, icon=icon))
+        except Exception as e:
+            self.notify(f"Error loading directory: {e}")
+
+    @on(ListView.Selected)
+    async def selected(self, event: ListView.Selected):
+        """Handle item selection."""
+        selected_path = event.item.label
+
+        if Path.is_file(self.path.joinpath(selected_path)):
+            self.notify("Playing...")
+            return
+
+        if self.list_view.index == 0:
+            self.path = Path(self.path).resolve().parent
+        elif Path.is_dir(self.path.joinpath(selected_path)):
+            self.path = self.path.joinpath(selected_path)
+
+        # self.list_view.clear()
+        # await self.populate_list(self.path)
+        # self.list_view.focus()
+        await self.recompose()
+        self.list_view.focus()
 
 
 class MediaPlayer(Vertical):
@@ -56,12 +92,12 @@ class MediaPlayer(Vertical):
 
     state = State.STOPPED
 
-    shuffle_button = Button("SH", id="shuffle", classes="control-buttons")
-    prev_button = Button("PR", id="prev", classes="control-buttons")
-    play_button = Button("PL", id="play", classes="control-buttons")
+    shuffle_button = Button("🔀", id="shuffle", classes="control-buttons")
+    prev_button = Button("⏮️", id="prev", classes="control-buttons")
+    play_button = Button("▶️", id="play", classes="control-buttons")
     # pause_button = Button("PA", id="pause", classes="control-buttons")
-    next_button = Button("NX", id="next", classes="control-buttons")
-    loop_button = Button("LO", id="loop", classes="control-buttons")
+    next_button = Button("⏭️", id="next", classes="control-buttons")
+    loop_button = Button("🔁", id="loop", classes="control-buttons")
 
     async def on_mount(self) -> None: ...
 

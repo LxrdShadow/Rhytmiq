@@ -47,7 +47,6 @@ Screen:dark {
 
 .control-buttons {
     width: 1fr;
-    /*padding: 1 0;*/
     background: transparent;
     border: round $secondary;
 }

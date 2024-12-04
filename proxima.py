@@ -18,42 +18,52 @@ class MediaPlayer(Container):
     audio_title: str = reactive("No title available")
     artist_name: str = reactive("Unknown artist")
     album: str = reactive("No album info")
+    state: State = reactive(State.STOPPED)
+    duration: float = reactive(0)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.state: State = State.STOPPED
         self.playing_song: Path = None
+
+        # Children
+        self.media_info = MediaInfo(
+            self.audio_title,
+            self.artist_name,
+            self.album,
+            classes="media-info",
+        )
+
+        self.control_buttons = ControlButtons(
+            classes="control-buttons-group",
+        )
 
     async def on_mount(self) -> None: ...
 
     @on(Button.Pressed, "#play")
-    def handle_play_song(self, event: Button.Pressed) -> None:
+    def _handle_play_button(self, event: Button.Pressed) -> None:
         """Handle pressing the play button"""
-        self.play_song()
+        self.toggle_play_state()
 
     def play_song(self, media: str = "") -> None:
-        """Manages clicking the play button"""
+        """Manages playing a new song"""
         if not media:
             return
 
-        if self.state == State.PLAYING and self.playing_song == media:
+        play(media)
+        self.playing_song = media
+        self.audio_title, self.artist_name, self.album, self.duration = get_metadata(Path(media))
+        self.state = State.PLAYING
+
+    def toggle_play_state(self) -> None:
+        if self.state == State.PLAYING:
             pause()
             self.state = State.PAUSED
             return
 
-        if self.state == State.PAUSED and self.playing_song == media:
+        if self.state == State.PAUSED:
             unpause()
             self.state = State.PLAYING
             return
-
-        self._play_new_song(media)
-
-    def _play_new_song(self, media: str) -> None:
-        """Handles playing a new song and updating metadata."""
-        play(media)
-        self.playing_song = media
-        self.audio_title, self.artist_name, self.album = get_metadata(Path(media))
-        self.state = State.PLAYING
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the player."""
@@ -64,18 +74,12 @@ class MediaPlayer(Container):
                 FileExplorer(title="Playlist", player=self, id="ac2"),
                 classes="files",
             ),
-            MediaInfo(
-                self.audio_title,
-                self.artist_name,
-                self.album,
-                classes="media-info",
-            ),
-            ControlButtons(
-                classes="control-buttons-group",
-            ),
+            self.media_info,
+            self.control_buttons,
             classes="media-player-container",
         )
 
+    # WATCHERS
     def watch_audio_title(self, old_value, new_value):
         try:
             self.query_one("#media-title", Static).update(new_value)
@@ -91,6 +95,17 @@ class MediaPlayer(Container):
     def watch_album(self, old_value, new_value):
         try:
             self.query_one("#album", Static).update(new_value)
+        except NoMatches:
+            pass
+
+    def watch_state(self, old_value, new_value):
+        try:
+            play_button = self.query_one("#play", Button)
+            if self.state == State.PLAYING:
+                play_button.label = "pause"
+            else:
+                play_button.label = "play"
+
         except NoMatches:
             pass
 

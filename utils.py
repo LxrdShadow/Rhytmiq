@@ -2,7 +2,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
-import pygame
+from tinytag import TinyTag
 
 
 class State(Enum):
@@ -35,9 +35,10 @@ def get_directory_contents(directory: Path, parent) -> list[str]:
 @lru_cache(maxsize=20)
 def get_metadata(filepath: Path) -> list[str]:
     """Get the relevant info from the audio file."""
-    media_info = pygame.mixer.music.get_metadata(filepath)
+    media_info = TinyTag.get(filepath)
     return [
-        media_info["title"] or filepath.stem,
-        media_info["artist"] or "Unknown Artist",
-        media_info["album"] or "Unknown Album",
+        media_info.title or filepath.stem,
+        media_info.artist or "Unknown Artist",
+        media_info.album or "Unknown Album",
+        media_info.duration or 0
     ]

@@ -3,9 +3,10 @@ from pathlib import Path
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
+from textual.widget import Widget
 from textual.widgets import Button, Label, ListItem, ListView, Static
 
-from utils import ALLOWED_FILTYPES, ICON, get_directory_contents
+from utils import ALLOWED_FILTYPES, ICON, State, get_directory_contents
 
 
 class MediaInfo(Vertical):
@@ -51,22 +52,28 @@ class LabelItem(ListItem):
 class ControlButtons(Horizontal):
     """A container for the control buttons"""
 
+    shuffle_button = Button("shuffle", id="shuffle", classes="control-buttons")
+    prev_button = Button("prev", id="prev", classes="control-buttons")
+    play_button = Button("play", id="play", classes="control-buttons")
+    next_button = Button("next", id="next", classes="control-buttons")
+    loop_button = Button("loop", id="loop", classes="control-buttons")
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
         """Create the control buttons."""
-        yield Button("shuffle", id="shuffle", classes="control-buttons")
-        yield Button("prev", id="prev", classes="control-buttons")
-        yield Button("play", id="play", classes="control-buttons")
-        yield Button("next", id="next", classes="control-buttons")
-        yield Button("loop", id="loop", classes="control-buttons")
+        yield self.shuffle_button
+        yield self.prev_button
+        yield self.play_button
+        yield self.next_button
+        yield self.loop_button
 
 
 class FileExplorer(Container):
     """The album cover for the current media"""
 
-    def __init__(self, title: str, player: Container, *args, **kwargs) -> None:
+    def __init__(self, title: str, player: Widget, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.title = title
         self.path = Path.cwd()
@@ -111,24 +118,24 @@ class FileExplorer(Container):
         """Handle item selection."""
         selected_path = self.path.joinpath(event.item.label)
 
-        if (
-            Path.is_file(selected_path)
-            and Path(selected_path).suffix in ALLOWED_FILTYPES
-        ):
-            if (
-                not self.player.playing_song
-                or self.player.playing_song != selected_path
-            ):
-                self.player.play_song(selected_path)
+        if Path.is_dir(selected_path):
+            if self.list_view.index == 0:
+                self.path = Path(self.path).resolve().parent
+            elif Path.is_dir(selected_path):
+                self.path = selected_path
+
+            # self.list_view.clear()
+            # await self.populate_list(self.path)
+            # self.list_view.focus()
+            await self.recompose()
+            self.list_view.focus()
             return
 
-        if self.list_view.index == 0:
-            self.path = Path(self.path).resolve().parent
-        elif Path.is_dir(selected_path):
-            self.path = selected_path
+        if Path(selected_path).suffix not in ALLOWED_FILTYPES:
+            return
 
-        # self.list_view.clear()
-        # await self.populate_list(self.path)
-        # self.list_view.focus()
-        await self.recompose()
-        self.list_view.focus()
+        if not self.player.playing_song or self.player.playing_song != selected_path:
+            self.player.play_song(selected_path)
+            return
+
+        self.player.toggle_play_state()

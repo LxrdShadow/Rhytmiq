@@ -17,7 +17,7 @@ class Loop(Enum):
     ALL: int = "A"
 
 
-ICON = {"directory": "📁", "file": "📄"}
+ICON = {"directory": "📁", "document": "📄", "audio": "📀", "video": "🎥"}
 
 ALLOWED_FILTYPES = [".wav", ".mp3", ".m4a"]
 
@@ -40,5 +40,5 @@ def get_metadata(filepath: Path) -> list[str]:
         media_info.title or filepath.stem,
         media_info.artist or "Unknown Artist",
         media_info.album or "Unknown Album",
-        media_info.duration or 0
+        media_info.duration or 0,
     ]

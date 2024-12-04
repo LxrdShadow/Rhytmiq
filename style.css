@@ -78,11 +78,11 @@ MediaPlayer:dark {
     grid-rows: 7fr 1.5fr 0.5fr;
 }
 
-#file-explorer:dark {
+.file-explorer:dark {
     background: $bg-dark;
 }
 
-#file-explorer {
+.file-explorer {
     background: $bg-light;
 }
 

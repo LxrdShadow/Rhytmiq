@@ -2,11 +2,11 @@ from pathlib import Path
 
 from textual import on
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Horizontal, Vertical
 from textual.widget import Widget
 from textual.widgets import Button, Label, ListItem, ListView, Static
 
-from utils import ALLOWED_FILTYPES, ICON, State, get_directory_contents
+from utils import ALLOWED_FILTYPES, ICON, get_directory_contents
 
 
 class MediaInfo(Vertical):
@@ -39,14 +39,15 @@ class MediaInfo(Vertical):
 class LabelItem(ListItem):
     """Custom Label as a ListItem."""
 
-    def __init__(self, label: str, icon: str = "") -> None:
-        super().__init__()
-        self.label = label
+    def __init__(self, text: str, icon: str = "", *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.label_text = text
         self.icon = icon
+        self.label = Label(self.icon + self.label_text)
 
     def compose(self) -> ComposeResult:
         """Load the text for the item."""
-        yield Label(self.icon + self.label)
+        yield self.label
 
 
 class ControlButtons(Horizontal):
@@ -70,7 +71,7 @@ class ControlButtons(Horizontal):
         yield self.loop_button
 
 
-class FileExplorer(Container):
+class FileExplorer(ListView):
     """The album cover for the current media"""
 
     def __init__(self, title: str, player: Widget, *args, **kwargs) -> None:
@@ -78,57 +79,47 @@ class FileExplorer(Container):
         self.title = title
         self.path = Path.cwd()
         self.player = player
+        self.classes = "file-explorer"
 
     async def on_mount(self) -> None:
         self.border_title = self.title
-        # await self.populate_list(self.path)
+        await self.populate(self.path)
 
-    def compose(self) -> ComposeResult:
-        """Create the list of directory and files."""
-        self.list_view = ListView(
-            LabelItem("../", icon=ICON["directory"]),
-            *[
-                (
-                    LabelItem(elem.name + "/", icon=ICON["directory"])
-                    if elem.is_dir()
-                    else LabelItem(elem.name, icon=ICON["file"])
-                )
-                for elem in get_directory_contents(self.path, self)
-            ],
-            id="file-explorer",
-        )
-        # self.list_view = DirectoryTree(os.getcwd(), id="file-explorer")
-        yield self.list_view
-
-    async def populate_list(self, directory: Path):
+    async def populate(self, directory: Path):
         """Populate the ListView with files and directories"""
-        self.list_view.append(LabelItem("../", icon=ICON["directory"]))
+        self.append(LabelItem("../", icon=ICON["directory"]))
         try:
             # Lazy load directory content
             children = get_directory_contents(directory, self)
             for chunk in range(0, len(children), 10):
                 for child in children[chunk : chunk + 10]:
-                    icon = ICON["directory"] if child.is_dir() else ICON["file"]
-                    self.list_view.append(LabelItem(child.name, icon=icon))
+                    if child.is_dir():
+                        icon = ICON["directory"]
+                    else:
+                        icon = (
+                            ICON["audio"]
+                            if child.suffix in ALLOWED_FILTYPES
+                            else ICON["document"]
+                        )
+                    self.append(LabelItem(child.name, icon=icon))
         except Exception as e:
             self.notify(f"Error loading directory: {e}")
 
     @on(ListView.Selected)
     async def selected(self, event: ListView.Selected):
         """Handle item selection."""
-        selected_path = self.path.joinpath(event.item.label)
+        selected_path = self.path.joinpath(event.item.label_text)
 
         if Path.is_dir(selected_path):
-            if self.list_view.index == 0:
+            if self.index == 0:
                 self.path = Path(self.path).resolve().parent
             elif Path.is_dir(selected_path):
                 self.path = selected_path
 
-            # self.list_view.clear()
-            # await self.populate_list(self.path)
-            # self.list_view.focus()
-            await self.recompose()
-            self.list_view.focus()
+            await self.clear()
+            self.notify(event.item.label_text)
+            await self.populate(self.path)
+            self.focus()
             return
 
         if Path(selected_path).suffix not in ALLOWED_FILTYPES:

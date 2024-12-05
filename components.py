@@ -3,10 +3,18 @@ from pathlib import Path
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.reactive import reactive
+from textual.scrollbar import ScrollRight
 from textual.widget import Widget
 from textual.widgets import Button, Label, ListItem, ListView, Static
 
-from utils import ALLOWED_FILTYPES, ICON, get_directory_contents
+from utils import (
+    ALLOWED_AUDIO_EXTENSIONS,
+    ICON,
+    get_directory_contents,
+    get_metadata,
+    is_valid_media,
+)
 
 
 class MediaInfo(Vertical):
@@ -72,20 +80,23 @@ class ControlButtons(Horizontal):
 
 
 class FileExplorer(ListView):
-    """The album cover for the current media"""
+    """A minimal file explorer."""
 
-    def __init__(self, title: str, player: Widget, *args, **kwargs) -> None:
+    BINDINGS = [
+        ("a", "add_to_playlist", "Add to the playlist"),
+    ]
+
+    def __init__(self, player: Widget, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.title = title
         self.path = Path.cwd()
         self.player = player
-        self.classes = "file-explorer"
+        self.classes = "list"
+        self.border_title = "File explorer"
 
     async def on_mount(self) -> None:
-        self.border_title = self.title
         await self.populate(self.path)
 
-    async def populate(self, directory: Path):
+    async def populate(self, directory: str | Path):
         """Populate the ListView with files and directories"""
         self.append(LabelItem("../", icon=ICON["directory"]))
         try:
@@ -98,7 +109,7 @@ class FileExplorer(ListView):
                     else:
                         icon = (
                             ICON["audio"]
-                            if child.suffix in ALLOWED_FILTYPES
+                            if child.suffix in ALLOWED_AUDIO_EXTENSIONS
                             else ICON["document"]
                         )
                     self.append(LabelItem(child.name, icon=icon))
@@ -107,7 +118,7 @@ class FileExplorer(ListView):
 
     @on(ListView.Selected)
     async def selected(self, event: ListView.Selected):
-        """Handle item selection."""
+        """Handle item selection from the filesystem."""
         selected_path = self.path.joinpath(event.item.label_text)
 
         if Path.is_dir(selected_path):
@@ -117,12 +128,11 @@ class FileExplorer(ListView):
                 self.path = selected_path
 
             await self.clear()
-            self.notify(event.item.label_text)
             await self.populate(self.path)
             self.focus()
             return
 
-        if Path(selected_path).suffix not in ALLOWED_FILTYPES:
+        if not is_valid_media(Path(selected_path)):
             return
 
         if not self.player.playing_song or self.player.playing_song != selected_path:
@@ -130,3 +140,79 @@ class FileExplorer(ListView):
             return
 
         self.player.toggle_play_state()
+
+    async def action_add_to_playlist(self):
+        """Add a media to the playlist."""
+        media = self.path.joinpath(self.children[self.index].label_text)
+        if not is_valid_media(media):
+            return
+
+        await self.parent.query_one("#playlist").add_media(media)
+
+
+class Playlist(ListView):
+    """Playlist filled by the user."""
+
+    songs: dict = reactive({})
+    BINDINGS = [
+        ("x", "remove_media", "Remove from the playlist"),
+    ]
+
+    def __init__(self, player: Widget, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.player = player
+        self.classes = "list"
+        self.border_title = "Playlist"
+
+    async def on_mount(self) -> None:
+        # await self.populate(self.path)
+        ...
+
+    @on(ListView.Selected)
+    async def selected(self, event: ListView.Selected):
+        """Handle media selection from the playlist."""
+        selected_media = self.songs[event.item.label_text]
+
+        if not self.player.playing_song or self.player.playing_song != selected_media:
+            self.player.play_song(selected_media)
+            return
+
+        self.player.toggle_play_state()
+
+    async def populate(self):
+        """Populate the Playlist with the current media list"""
+        for child in self.songs.keys():
+            self.append(
+                LabelItem(
+                    child,
+                    icon=ICON["audio"],
+                )
+            )
+
+    async def add_media(self, media: str | Path) -> None:
+        """Handle media addition to the playlist."""
+        title, artist, _, _ = get_metadata(media)
+        key = f"{title} {'~ ' + artist if artist != 'Unknown' else ''}"
+
+        if key in self.songs.keys():
+            return
+
+        self.songs[key] = media
+        self.append(
+            LabelItem(
+                key,
+                icon=ICON["audio"],
+            )
+        )
+
+    async def action_remove_media(self) -> None:
+        """Handle media removal from the playlist."""
+        index = self.index
+        media = self.children[index].label_text
+        del self.songs[media]
+        await self.children[index].remove()
+
+        if not len(self.children):
+            return
+
+        self.index = index if index < len(self.children) else 0

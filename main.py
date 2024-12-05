@@ -1,12 +1,13 @@
 import argparse
+import os
+
+# Disable the pygame's version support text
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 
 from proxima import Proxima
 
-# import os
-# os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 
-
-def parse_arguments():
+def parse_arguments(args=[]):
     parser = argparse.ArgumentParser(
         prog="Proxima", description="A modern terminal-based media player"
     )
@@ -19,7 +20,7 @@ def parse_arguments():
         help="Initial volume for the player (0 to 100)",
     )
 
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def hello():
@@ -28,7 +29,7 @@ def hello():
 
 def main():
     args = parse_arguments()
-    print(args)
+    print("Running Proxima...")
     proxima = Proxima()
     proxima.run()
 

@@ -64,38 +64,30 @@ MediaPlayer {
     background: $bg-light-2;
     color: $text;
     padding: 1 2;
+    layout: grid;
+    grid-size: 1;
+    grid-rows: 7fr 1.5fr 0.5fr;
 }
 
 MediaPlayer:dark {
     background: $bg-dark-2;
 }
 
-.media-player-container {
-    width: 100%;
-    height: 100%;
-    layout: grid;
-    grid-size: 1;
-    grid-rows: 7fr 1.5fr 0.5fr;
-}
-
-.file-explorer:dark {
+.list:dark {
     background: $bg-dark;
 }
 
-.file-explorer {
+.list {
     background: $bg-light;
-}
-
-.files {
-    width: 100%;
-    height: 100%;
-}
-
-FileExplorer {
     border: round $primary;
     border-title-align: center;
     height: 100%;
     width: 1fr;
     margin: 0 3;
+}
+
+.files {
+    width: 100%;
+    height: 100%;
 }
 

@@ -7,25 +7,35 @@ from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.widgets import Button, Footer, Header, Static
 
-from components import ControlButtons, FileExplorer, MediaInfo
+from components import ControlButtons, FileExplorer, MediaInfo, Playlist
 from playback import pause, play, pygame, stop, unpause
-from utils import State, get_metadata
+from utils import Loop, State, get_metadata
 
 
 class MediaPlayer(Container):
     """The main media player widget."""
 
+    BINDINGS = [
+        ("space", "toggle_play", "Toggle play"),
+    ]
+
     audio_title: str = reactive("No title available")
     artist_name: str = reactive("Unknown artist")
     album: str = reactive("No album info")
-    state: State = reactive(State.STOPPED)
     duration: float = reactive(0)
+    state: State = reactive(State.STOPPED)
+    shuffle: bool = reactive(False)
+    loop: Loop = reactive(Loop.NONE)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.playing_song: Path = None
+        self.classes = "media-player-container"
 
         # Children
+        self.file_explorer = FileExplorer(player=self, id="file-explorer")
+        self.playlist = Playlist(player=self, id="playlist")
+
         self.media_info = MediaInfo(
             self.audio_title,
             self.artist_name,
@@ -42,28 +52,27 @@ class MediaPlayer(Container):
     def compose(self) -> ComposeResult:
         """Create child widgets for the player."""
 
-        yield Container(
-            Horizontal(
-                FileExplorer(title="File explorer", player=self),
-                FileExplorer(title="Playlist", player=self),
+        yield Horizontal(
+                self.file_explorer,
+                self.playlist,
                 classes="files",
-            ),
-            self.media_info,
-            self.control_buttons,
-            classes="media-player-container",
-        )
+            )
+        yield self.media_info
+        yield self.control_buttons
 
-    def play_song(self, media: str = "") -> None:
+    def play_song(self, media: str | Path = "") -> None:
         """Manages playing new songs."""
         if not media:
             return
 
-        play(media)
-        self.playing_song = media
-        self.audio_title, self.artist_name, self.album, self.duration = get_metadata(
-            Path(media)
-        )
-        self.state = State.PLAYING
+        if play(Path(media)):
+            self.playing_song = media
+            self.audio_title, self.artist_name, self.album, self.duration = get_metadata(
+                Path(media)
+            )
+            self.state = State.PLAYING
+        else:
+            self.notify("Unable to play the media file.")
 
     @on(Button.Pressed, "#play")
     def toggle_play_state(self) -> None:
@@ -78,7 +87,7 @@ class MediaPlayer(Container):
             self.state = State.PLAYING
             return
 
-    # WATCHERS
+    # WATCHERS for dynamic text reloading
     def watch_audio_title(self, old_value, new_value) -> None:
         try:
             self.query_one("#media-title", Static).update(new_value)
@@ -108,6 +117,28 @@ class MediaPlayer(Container):
         except NoMatches:
             pass
 
+    def watch_shuffle(self, old_value, new_value) -> None:
+        try:
+            shuffle_button = self.query_one("#shuffle", Button)
+            if self.shuffle:
+                shuffle_button.label = "shuffle 🮱"
+            else:
+                shuffle_button.label = "shuffle"
+
+        except NoMatches:
+            pass
+
+    def watch_loop(self, old_value, new_value) -> None:
+        try:
+            self.query_one("#loop", Button).label = f"loop {new_value.value}"
+        except NoMatches:
+            pass
+
+    # BINDING Actions
+    def action_toggle_play(self):
+        """Toggle between play and pause state from binding."""
+        self.toggle_play_state()
+
 
 class Proxima(App):
     """
@@ -119,25 +150,22 @@ class Proxima(App):
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
         ("q", "quit", "Quit"),
-        ("space", "toggle_play", "Toggle play"),
     ]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.media_player = MediaPlayer()
+        self.theme = "tokyo-night"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        yield Header()
+        yield Header(show_clock=True)
         yield Footer()
         yield self.media_player
 
-    def action_toggle_play(self):
-        """Toggle between play and pause state from binding."""
-        self.media_player.toggle_play_state()
-
     def action_quit(self):
         """Close the application"""
+        print("Exiting...")
         stop()
         pygame.mixer.quit()
         self.exit()

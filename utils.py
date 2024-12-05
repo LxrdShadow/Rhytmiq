@@ -12,14 +12,15 @@ class State(Enum):
 
 
 class Loop(Enum):
-    NONE: int = ""
-    ONE: int = "1"
-    ALL: int = "A"
+    NONE: str = ""
+    ONE: str = "(1)"
+    ALL: str = "(A)"
 
 
 ICON = {"directory": "📁", "document": "📄", "audio": "📀", "video": "🎥"}
 
-ALLOWED_FILTYPES = [".wav", ".mp3", ".m4a"]
+ALLOWED_AUDIO_EXTENSIONS = [".mp3", ".wav", ".m4a"]
+VIDEO_EXTENSIONS = [".mp4", ".avi", ".mkv"]
 
 
 @lru_cache(maxsize=32)
@@ -42,3 +43,7 @@ def get_metadata(filepath: Path) -> list[str]:
         media_info.album or "Unknown Album",
         media_info.duration or 0,
     ]
+
+
+def is_valid_media(filepath: Path) -> bool:
+    return filepath.suffix in ALLOWED_AUDIO_EXTENSIONS

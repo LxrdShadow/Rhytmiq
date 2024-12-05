@@ -1,12 +1,23 @@
+from pathlib import Path
+
 import pygame
 
 pygame.mixer.init()
 
 
-def play(file: str) -> None:
-    """Play a media file."""
-    pygame.mixer.music.load(file)
-    pygame.mixer.music.play()
+def play(file: Path) -> None:
+    """Play a media file.
+
+        Returns:
+            True if the file was loaded successfuly.
+            False otherwise.
+    """
+    try:
+        pygame.mixer.music.load(file)
+        pygame.mixer.music.play()
+        return True
+    except Exception:
+        return False
 
 
 def pause() -> None:

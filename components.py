@@ -4,17 +4,11 @@ from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
-from textual.scrollbar import ScrollRight
 from textual.widget import Widget
 from textual.widgets import Button, Label, ListItem, ListView, Static
 
-from utils import (
-    ALLOWED_AUDIO_EXTENSIONS,
-    ICON,
-    get_directory_contents,
-    get_metadata,
-    is_valid_media,
-)
+from utils import (ALLOWED_AUDIO_EXTENSIONS, ICON, get_directory_contents,
+                   get_metadata, is_valid_media)
 
 
 class MediaInfo(Vertical):
@@ -103,7 +97,7 @@ class FileExplorer(ListView):
             # Lazy load directory content
             children = get_directory_contents(directory, self)
             for chunk in range(0, len(children), 10):
-                for child in children[chunk : chunk + 10]:
+                for child in children[chunk: chunk + 10]:
                     if child.is_dir():
                         icon = ICON["directory"]
                     else:
@@ -117,12 +111,12 @@ class FileExplorer(ListView):
             self.notify(f"Error loading directory: {e}")
 
     @on(ListView.Selected)
-    async def selected(self, event: ListView.Selected):
+    async def handle_selection(self, event: ListView.Selected):
         """Handle item selection from the filesystem."""
         selected_path = self.path.joinpath(event.item.label_text)
 
         if Path.is_dir(selected_path):
-            if self.index == 0:
+            if self.index == 0 or event.item.label_text == "../":
                 self.path = Path(self.path).resolve().parent
             elif Path.is_dir(selected_path):
                 self.path = selected_path
@@ -153,7 +147,7 @@ class FileExplorer(ListView):
 class Playlist(ListView):
     """Playlist filled by the user."""
 
-    songs: dict = reactive({})
+    songs: dict[str, str] = reactive({})
     BINDINGS = [
         ("x", "remove_media", "Remove from the playlist"),
     ]
@@ -169,19 +163,24 @@ class Playlist(ListView):
         ...
 
     @on(ListView.Selected)
-    async def selected(self, event: ListView.Selected):
+    async def handle_selection(self, event: ListView.Selected):
         """Handle media selection from the playlist."""
-        selected_media = self.songs[event.item.label_text]
+        key = event.item.label_text
+        selected_media = self.songs[key]
 
-        if not self.player.playing_song or self.player.playing_song != selected_media:
-            self.player.play_song(selected_media)
+        if (
+            not self.player.playing_song
+            or self.player.playing_song != selected_media
+            or not self.player.playing_from_playlist
+        ):
+            self.player.play_from_playlist((key, selected_media))
             return
 
         self.player.toggle_play_state()
 
     async def populate(self):
-        """Populate the Playlist with the current media list"""
-        for child in self.songs.keys():
+        """Populate the Playlist with the current media list."""
+        for child in self.songs:
             self.append(
                 LabelItem(
                     child,
@@ -194,7 +193,7 @@ class Playlist(ListView):
         title, artist, _, _ = get_metadata(media)
         key = f"{title} {'~ ' + artist if artist != 'Unknown' else ''}"
 
-        if key in self.songs.keys():
+        if key in self.songs:
             return
 
         self.songs[key] = media

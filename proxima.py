@@ -1,4 +1,6 @@
 from pathlib import Path
+from threading import Thread
+from time import sleep
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -30,7 +32,12 @@ class MediaPlayer(Container):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.playing_song: Path = None
-        self.classes = "media-player-container"
+        self.current_playlist_title: str = None
+        self.classes: str = "media-player-container"
+        self.playing_from_playlist: bool = False
+        self.monitor_thread: Thread = None
+        self.running: bool = True
+        self.state_switch: bool = False
 
         # Children
         self.file_explorer = FileExplorer(player=self, id="file-explorer")
@@ -47,32 +54,92 @@ class MediaPlayer(Container):
             classes="control-buttons-group",
         )
 
-    async def on_mount(self) -> None: ...
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the player."""
 
         yield Horizontal(
-                self.file_explorer,
-                self.playlist,
-                classes="files",
-            )
+            self.file_explorer,
+            self.playlist,
+            classes="files",
+        )
         yield self.media_info
         yield self.control_buttons
 
-    def play_song(self, media: str | Path = "") -> None:
+    def play_song(self, media: str | Path = "", from_playlist: bool = False) -> None:
         """Manages playing new songs."""
         if not media:
             return
 
-        if play(Path(media)):
+        self.state_switch = True
+        self.playing_from_playlist = from_playlist
+
+        if play(media):
             self.playing_song = media
-            self.audio_title, self.artist_name, self.album, self.duration = get_metadata(
-                Path(media)
+            self.audio_title, self.artist_name, self.album, self.duration = (
+                get_metadata(media)
             )
             self.state = State.PLAYING
+
+            if self.monitor_thread is None or not self.monitor_thread.is_alive():
+                self.monitor_thread = Thread(target=self.monitor_song_end, daemon=True)
+                self.monitor_thread.start()
         else:
             self.notify("Unable to play the media file.")
+
+        self.state_switch = False
+
+    def play_from_playlist(self, media: tuple[str]) -> None:
+        """Manages playing songs from the playlist."""
+        self.current_playlist_title, song = media
+
+        self.play_song(song, from_playlist=True)
+
+    def monitor_song_end(self) -> None:
+        """Monitor when a song ends."""
+        while self.running:
+            if self.state_switch:
+                sleep(0.5)
+                continue
+
+            if self.state == State.PLAYING and not pygame.mixer.music.get_busy():
+                self.handle_song_end()
+                sleep(0.5)
+
+    def handle_song_end(self) -> None:
+        """Called when a song finishes playing."""
+
+        if self.state == State.PAUSED:
+            return
+
+        if not self.playing_from_playlist:
+            if self.loop != Loop.NONE:
+                self.play_song(self.playing_song)
+            else:
+                self.state = State.STOPPED
+            return
+
+        if self.loop == Loop.ONE and self.state == State.PLAYING:
+            self.play_song(self.playing_song)
+        else:
+            if not self.playlist.songs:
+                self.state = State.STOPPED
+                return
+
+            titles = list(self.playlist.songs.keys())
+            current_index = titles.index(self.current_playlist_title)
+
+            if current_index + 1 < len(titles):
+                new_index = current_index + 1
+            elif self.loop == Loop.ALL:
+                new_index = 0
+            else:
+                self.state = State.STOPPED
+                return
+
+            next_song_title = titles[new_index]
+            next_song_path = self.playlist.songs[next_song_title]
+            self.current_playlist_title = next_song_title
+            self.play_song(next_song_path, from_playlist=True)
 
     @on(Button.Pressed, "#play")
     def toggle_play_state(self) -> None:
@@ -80,12 +147,21 @@ class MediaPlayer(Container):
         if self.state == State.PLAYING:
             pause()
             self.state = State.PAUSED
-            return
-
-        if self.state == State.PAUSED:
+        elif self.state == State.PAUSED:
             unpause()
             self.state = State.PLAYING
-            return
+        elif self.state == State.STOPPED and self.playing_song is not None:
+            self.play_song(self.playing_song, from_playlist=self.playing_from_playlist)
+
+    @on(Button.Pressed, "#loop")
+    def change_loop_state(self) -> None:
+        """Toggle between the loop states (NONE, ONE and ALL)."""
+        if self.loop == Loop.NONE:
+            self.loop = Loop.ONE
+        elif self.loop == Loop.ONE:
+            self.loop = Loop.ALL
+        else:
+            self.loop = Loop.NONE
 
     # WATCHERS for dynamic text reloading
     def watch_audio_title(self, old_value, new_value) -> None:
@@ -159,13 +235,13 @@ class Proxima(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        yield Header(show_clock=True)
+        yield Header()
         yield Footer()
         yield self.media_player
 
     def action_quit(self):
         """Close the application"""
-        print("Exiting...")
+        self.media_player.running = False
         stop()
         pygame.mixer.quit()
         self.exit()

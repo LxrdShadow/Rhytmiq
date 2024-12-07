@@ -4,12 +4,13 @@ import os
 # Disable the pygame's version support text
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 
-from proxima import Proxima
+from app import Proxima
+from config import APP_NAME
 
 
 def parse_arguments(args=[]):
     parser = argparse.ArgumentParser(
-        prog="Proxima", description="A modern terminal-based music player."
+        prog=APP_NAME, description="A modern terminal-based music player."
     )
     parser.add_argument("--folder", type=str, help="Path to the choosen folder")
     parser.add_argument("--play", type=str, help="Name of the media to play")
@@ -25,6 +26,8 @@ def parse_arguments(args=[]):
 
 def main():
     args = parse_arguments()
+    if args:
+        ...
     proxima = Proxima()
     proxima.run()
 

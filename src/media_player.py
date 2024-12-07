@@ -3,15 +3,19 @@ from threading import Thread
 from time import sleep
 
 from textual import on
-from textual.app import App, ComposeResult
+from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
 from textual.css.query import NoMatches
 from textual.reactive import reactive
-from textual.widgets import Button, Footer, Header, Static
+from textual.widgets import Button, Static
 
-from components import ControlButtons, FileExplorer, MediaInfo, Playlist
-from playback import pause, play, pygame, stop, unpause
-from utils import Loop, State, get_metadata
+from components.control_buttons import ControlButtons
+from components.file_explorer import FileExplorer
+from components.media_info import MediaInfo
+from components.playlist import Playlist
+from utils.constants import Loop, State
+from utils.helpers import get_metadata
+from utils.playback import pause, play, pygame, stop, unpause
 
 
 class MediaPlayer(Container):
@@ -74,11 +78,11 @@ class MediaPlayer(Container):
         self.playing_from_playlist = from_playlist
 
         if play(media):
+            self.state = State.PLAYING
             self.playing_song = media
             self.audio_title, self.artist_name, self.album, self.duration = (
                 get_metadata(media)
             )
-            self.state = State.PLAYING
 
             if self.monitor_thread is None or not self.monitor_thread.is_alive():
                 self.monitor_thread = Thread(target=self.monitor_song_end, daemon=True)
@@ -256,34 +260,3 @@ class MediaPlayer(Container):
     def action_toggle_play(self):
         """Toggle between play and pause state from binding."""
         self.toggle_play_state()
-
-
-class Proxima(App):
-    """
-    A modern terminal-based music player.
-    """
-
-    CSS_PATH = "style.css"
-
-    BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
-        ("q", "quit", "Quit"),
-    ]
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.media_player = MediaPlayer()
-        self.theme = "tokyo-night"
-
-    def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
-        yield Header()
-        yield Footer()
-        yield self.media_player
-
-    def action_quit(self):
-        """Close the application"""
-        self.media_player.running = False
-        stop()
-        pygame.mixer.quit()
-        self.exit()

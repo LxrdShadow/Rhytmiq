@@ -46,6 +46,7 @@ class LabelItem(ListItem):
         self.label_text = text
         self.icon = icon
         self.label = Label(self.icon + self.label_text)
+        self.initialized = True
 
     def compose(self) -> ComposeResult:
         """Load the text for the item."""
@@ -53,7 +54,7 @@ class LabelItem(ListItem):
 
 
 class ControlButtons(Horizontal):
-    """A container for the control buttons"""
+    """A container for the control buttons."""
 
     shuffle_button = Button("shuffle", id="shuffle", classes="control-buttons")
     prev_button = Button("prev", id="prev", classes="control-buttons")
@@ -74,7 +75,7 @@ class ControlButtons(Horizontal):
 
 
 class FileExplorer(ListView):
-    """A minimal file explorer."""
+    """A minimal file explorer for the player."""
 
     BINDINGS = [
         ("a", "add_to_playlist", "Add to the playlist"),
@@ -129,7 +130,11 @@ class FileExplorer(ListView):
         if not is_valid_media(Path(selected_path)):
             return
 
-        if not self.player.playing_song or self.player.playing_song != selected_path:
+        if (
+            not self.player.playing_song
+            or self.player.playing_song != selected_path
+            or self.player.playing_from_playlist
+        ):
             self.player.play_song(selected_path)
             return
 
@@ -145,9 +150,10 @@ class FileExplorer(ListView):
 
 
 class Playlist(ListView):
-    """Playlist filled by the user."""
+    """A minimal playlist for the player."""
 
     songs: dict[str, str] = reactive({})
+
     BINDINGS = [
         ("x", "remove_media", "Remove from the playlist"),
     ]
@@ -191,7 +197,7 @@ class Playlist(ListView):
     async def add_media(self, media: str | Path) -> None:
         """Handle media addition to the playlist."""
         title, artist, _, _ = get_metadata(media)
-        key = f"{title} {'~ ' + artist if artist != 'Unknown' else ''}"
+        key = f"{title} {'~ ' + artist}"
 
         if key in self.songs:
             return

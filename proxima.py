@@ -84,6 +84,7 @@ class MediaPlayer(Container):
                 self.monitor_thread = Thread(target=self.monitor_song_end, daemon=True)
                 self.monitor_thread.start()
         else:
+            self.next_song()
             self.notify("Unable to play the media file.")
 
         self.state_switch = False
@@ -118,28 +119,11 @@ class MediaPlayer(Container):
                 self.state = State.STOPPED
             return
 
-        if self.loop == Loop.ONE and self.state == State.PLAYING:
-            self.play_song(self.playing_song)
-        else:
-            if not self.playlist.songs:
-                self.state = State.STOPPED
-                return
+        if not self.playlist.songs:
+            self.state = State.STOPPED
+            return
 
-            titles = list(self.playlist.songs.keys())
-            current_index = titles.index(self.current_playlist_title)
-
-            if current_index + 1 < len(titles):
-                new_index = current_index + 1
-            elif self.loop == Loop.ALL:
-                new_index = 0
-            else:
-                self.state = State.STOPPED
-                return
-
-            next_song_title = titles[new_index]
-            next_song_path = self.playlist.songs[next_song_title]
-            self.current_playlist_title = next_song_title
-            self.play_song(next_song_path, from_playlist=True)
+        self.next_song()
 
     @on(Button.Pressed, "#play")
     def toggle_play_state(self) -> None:
@@ -162,6 +146,64 @@ class MediaPlayer(Container):
             self.loop = Loop.ALL
         else:
             self.loop = Loop.NONE
+
+    @on(Button.Pressed, "#next")
+    def next_song(self) -> None:
+        """Play the next media in the playlist."""
+        if not self.playing_from_playlist and self.loop == Loop.NONE:
+            stop()
+            self.state = State.STOPPED
+            return
+
+        next_song_path = self.playing_song
+
+        if self.playing_from_playlist and self.loop != Loop.ONE:
+            titles = list(self.playlist.songs.keys())
+            current_index = titles.index(self.current_playlist_title)
+
+            if current_index + 1 < len(titles):
+                new_index = current_index + 1
+            elif self.loop == Loop.ALL:
+                new_index = 0
+            else:
+                stop()
+                self.state = State.STOPPED
+                return
+
+            next_song_title = titles[new_index]
+            next_song_path = self.playlist.songs[next_song_title]
+            self.current_playlist_title = next_song_title
+
+        self.play_song(next_song_path, from_playlist=self.playing_from_playlist)
+
+    @on(Button.Pressed, "#prev")
+    def previous_song(self) -> None:
+        """Play the previous media in the playlist."""
+        if not self.playing_from_playlist and self.loop == Loop.NONE:
+            stop()
+            self.state = State.STOPPED
+            return
+
+        previous_song_path = self.playing_song
+
+        if self.playing_from_playlist and self.loop != Loop.ONE:
+            titles = list(self.playlist.songs.keys())
+            current_index = titles.index(self.current_playlist_title)
+
+            if current_index > 0:
+                new_index = current_index - 1
+            elif self.loop == Loop.ALL:
+                new_index = len(titles) - 1
+            else:
+                stop()
+                self.state = State.STOPPED
+                return
+
+            previous_song_title = titles[new_index]
+            previous_song_path = self.playlist.songs[previous_song_title]
+            self.current_playlist_title = previous_song_title
+
+        self.play_song(previous_song_path, from_playlist=self.playing_from_playlist)
 
     # WATCHERS for dynamic text reloading
     def watch_audio_title(self, old_value, new_value) -> None:
@@ -218,7 +260,7 @@ class MediaPlayer(Container):
 
 class Proxima(App):
     """
-    A modern terminal-based media player.
+    A modern terminal-based music player.
     """
 
     CSS_PATH = "style.css"

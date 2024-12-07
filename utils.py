@@ -17,7 +17,14 @@ class Loop(Enum):
     ALL: str = "(A)"
 
 
-ICON = {"directory": "📁", "document": "📄", "audio": "📀", "video": "🎥"}
+ICON = {
+    "directory": "📁",
+    "document": "📄",
+    "audio": "📀",
+    "video": "🎥",
+    "image": "🖼️",
+    "package": "📦"
+}
 
 ALLOWED_AUDIO_EXTENSIONS = [".mp3", ".wav", ".m4a"]
 VIDEO_EXTENSIONS = [".mp4", ".avi", ".mkv"]
@@ -25,7 +32,7 @@ VIDEO_EXTENSIONS = [".mp4", ".avi", ".mkv"]
 
 @lru_cache(maxsize=32)
 def get_directory_contents(directory: Path, parent) -> list[str]:
-    """Get the directory contents (files and directories)."""
+    """Get a directory's sorted contents (files and directories)."""
     try:
         return sorted(directory.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
     except PermissionError:

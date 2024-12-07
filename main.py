@@ -9,9 +9,9 @@ from proxima import Proxima
 
 def parse_arguments(args=[]):
     parser = argparse.ArgumentParser(
-        prog="Proxima", description="A modern terminal-based media player"
+        prog="Proxima", description="A modern terminal-based music player."
     )
-    parser.add_argument("--folder", type=str, help="Path to the music folder")
+    parser.add_argument("--folder", type=str, help="Path to the choosen folder")
     parser.add_argument("--play", type=str, help="Name of the media to play")
     parser.add_argument(
         "--volume",
@@ -23,13 +23,8 @@ def parse_arguments(args=[]):
     return parser.parse_args(args)
 
 
-def hello():
-    print("hello")
-
-
 def main():
     args = parse_arguments()
-    print("Running Proxima...")
     proxima = Proxima()
     proxima.run()
 

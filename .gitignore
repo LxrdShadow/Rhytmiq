@@ -1,2 +1,5 @@
 *.mp3
 *.wav
+*cache
+__pycache__/
+tests/__pycache__/

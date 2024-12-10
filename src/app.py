@@ -7,7 +7,7 @@ from media_player import MediaPlayer
 from utils.playback import stop
 
 
-class Proxima(App):
+class Rhytmiq(App):
     """
     A modern terminal-based music player.
     """

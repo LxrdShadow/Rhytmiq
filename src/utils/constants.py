@@ -24,3 +24,5 @@ ICON = {
 
 ALLOWED_AUDIO_EXTENSIONS = [".mp3", ".wav", ".m4a", ".flac"]
 VIDEO_EXTENSIONS = [".mp4", ".avi", ".mkv"]
+VOLUME_STEP = 0.1
+DEFAULT_VOLUME = 0.5

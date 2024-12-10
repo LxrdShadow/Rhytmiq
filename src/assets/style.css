@@ -4,8 +4,8 @@ $bg-light: #dddddd;
 $bg-dark-2: #2e2e3e;
 $bg-light-2: #efefef;
 
-$primary: #aaa4f4;
-$darker-primary: #8884f4;
+/* $primary: #aaa4f4; */
+$primary: #8884f4;
 $secondary: lightpink;
 
 Screen {
@@ -15,46 +15,6 @@ Screen {
 
 Screen:dark {
     background: $bg-dark;
-}
-
-.media-info {
-    width: 100%;
-    height: 100%;
-    align: center middle;
-}
-
-.media-info-texts {
-    color: $text;
-    text-style: bold;
-    height: auto;
-    text-align: center;
-    margin: 1 0;
-}
-
-#artist-name {
-    color: $darker-primary;
-}
-
-#album {
-    text-opacity: 0.4;
-}
-
-#progress-bar {
-    width: 100%;
-    margin-top: 2;
-    margin-left: 40;
-}
-
-.control-buttons {
-    width: 1fr;
-    background: transparent;
-    border: round $secondary;
-}
-
-.control-buttons-group {
-    width: 100%;
-    height: 100%;
-    align: center bottom;
 }
 
 MediaPlayer {
@@ -73,6 +33,11 @@ MediaPlayer:dark {
     background: $bg-dark-2;
 }
 
+.files {
+    width: 100%;
+    height: 100%;
+}
+
 .list:dark {
     background: $bg-dark;
 }
@@ -86,8 +51,51 @@ MediaPlayer:dark {
     margin: 0 3;
 }
 
-.files {
+.media-info {
     width: 100%;
     height: 100%;
+    align: center bottom;
 }
 
+.media-info-texts {
+    color: $text;
+    text-style: bold;
+    height: auto;
+    text-align: center;
+    margin: 1 2;
+}
+
+#artist-name {
+    color: $primary;
+}
+
+#album {
+    text-opacity: 0.4;
+}
+
+.volume-control {
+    align: center middle;
+}
+
+.volume-buttons {
+    background: transparent;
+    border: round $secondary;
+    margin: 0 2;
+}
+
+#volume-progress {
+    margin-top: 1;
+    /* width: 20%; */
+}
+
+.control-buttons {
+    width: 1fr;
+    background: transparent;
+    border: round $secondary;
+}
+
+.control-buttons-group {
+    width: 100%;
+    height: 100%;
+    align: center bottom;
+}

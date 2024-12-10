@@ -8,5 +8,5 @@ def app_launch():
         capture_output=True,
     )
 
-    assert "Running Proxima..." in result.stdout
+    assert "Running Rhytmiq..." in result.stdout
     assert "Exiting..." in result.stdout

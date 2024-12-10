@@ -4,7 +4,7 @@ import os
 # Disable the pygame's version support text
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 
-from app import Proxima
+from app import Rhytmiq
 from config import APP_NAME
 
 
@@ -28,8 +28,8 @@ def main():
     args = parse_arguments()
     if args:
         ...
-    proxima = Proxima()
-    proxima.run()
+    rhytmiq = Rhytmiq()
+    rhytmiq.run()
 
 
 if __name__ == "__main__":

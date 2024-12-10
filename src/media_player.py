@@ -7,15 +7,18 @@ from textual.app import ComposeResult
 from textual.containers import Container, Horizontal
 from textual.css.query import NoMatches
 from textual.reactive import reactive
-from textual.widgets import Button, Static
+from textual.widgets import Button, ProgressBar, Static
 
 from components.control_buttons import ControlButtons
 from components.file_explorer import FileExplorer
 from components.media_info import MediaInfo
 from components.playlist import Playlist
-from utils.constants import Loop, State
+from utils.constants import VOLUME_STEP, Loop, State, DEFAULT_VOLUME
 from utils.helpers import get_metadata
-from utils.playback import pause, play, pygame, stop, unpause
+from utils.playback import (decrease_volume, increase_volume, pause, play,
+                            pygame, stop, unpause)
+
+pygame.mixer.music.set_volume(DEFAULT_VOLUME)
 
 
 class MediaPlayer(Container):
@@ -23,6 +26,12 @@ class MediaPlayer(Container):
 
     BINDINGS = [
         ("space", "toggle_play", "Toggle play"),
+        ("s", "stop_song", "Stop"),
+        ("n", "next_song", "Next song"),
+        ("p", "previous_song", "Previous song"),
+        ("+", "increase_volume", "Increase the volume"),
+        ("-", "decrease_volume", "Decrease the volume"),
+        ("l", "loop", "Change loop state"),
     ]
 
     audio_title: str = reactive("No title available")
@@ -32,6 +41,7 @@ class MediaPlayer(Container):
     state: State = reactive(State.STOPPED)
     shuffle: bool = reactive(False)
     loop: Loop = reactive(Loop.NONE)
+    volume: float = reactive(0.5)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -154,6 +164,9 @@ class MediaPlayer(Container):
     @on(Button.Pressed, "#next")
     def next_song(self) -> None:
         """Play the next media in the playlist."""
+        if not self.playing_song:
+            return
+
         if not self.playing_from_playlist and self.loop == Loop.NONE:
             stop()
             self.state = State.STOPPED
@@ -256,7 +269,40 @@ class MediaPlayer(Container):
         except NoMatches:
             pass
 
+    def watch_volume(self, old_value, new_value) -> None:
+        try:
+            self.query_one("#volume-progress", ProgressBar).update(progress=round(new_value*100))
+        except NoMatches:
+            pass
+
     # BINDING Actions
-    def action_toggle_play(self):
+    def action_toggle_play(self) -> None:
         """Toggle between play and pause state from binding."""
         self.toggle_play_state()
+
+    def action_next_song(self) -> None:
+        """Play the next media"""
+        self.next_song()
+
+    def action_previous_song(self) -> None:
+        """Play the previous media"""
+        self.previous_song()
+
+    def action_loop(self) -> None:
+        """Change the loop state"""
+        self.change_loop_state()
+
+    def action_stop_song(self) -> None:
+        """Stop the lecture"""
+        stop()
+        self.state == State.STOPPED
+
+    def action_increase_volume(self) -> None:
+        """Increase the stream volume"""
+        increase_volume(VOLUME_STEP)
+        self.volume = self.volume + VOLUME_STEP if self.volume + VOLUME_STEP < 1 else 1
+
+    def action_decrease_volume(self) -> None:
+        """Decrease the stream volume"""
+        decrease_volume(VOLUME_STEP)
+        self.volume = self.volume - VOLUME_STEP if self.volume > VOLUME_STEP else 0

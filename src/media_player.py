@@ -32,6 +32,7 @@ class MediaPlayer(Container):
         ("+", "increase_volume", "Increase the volume"),
         ("-", "decrease_volume", "Decrease the volume"),
         ("l", "loop", "Change loop state"),
+        ("r", "shuffle", "Toggle shuffle"),
     ]
 
     audio_title: str = reactive("No title available")
@@ -39,7 +40,7 @@ class MediaPlayer(Container):
     album: str = reactive("No album info")
     duration: float = reactive(0)
     state: State = reactive(State.STOPPED)
-    shuffle: bool = reactive(False)
+    shuffle: bool = reactive(True)
     loop: Loop = reactive(Loop.NONE)
     volume: float = reactive(0.5)
 
@@ -161,6 +162,11 @@ class MediaPlayer(Container):
         else:
             self.loop = Loop.NONE
 
+    @on(Button.Pressed, "#shuffle")
+    def toggle_shuffle_state(self) -> None:
+        """Toggle between shuffle and unshuffle."""
+        self.shuffle = not self.shuffle
+
     @on(Button.Pressed, "#next")
     def next_song(self) -> None:
         """Play the next media in the playlist."""
@@ -221,6 +227,18 @@ class MediaPlayer(Container):
             self.current_playlist_title = previous_song_title
 
         self.play_song(previous_song_path, from_playlist=self.playing_from_playlist)
+
+    @on(Button.Pressed, "#decrease-volume")
+    def decrease_media_volume(self):
+        """Decrease the stream volume"""
+        decrease_volume(VOLUME_STEP)
+        self.volume = self.volume - VOLUME_STEP if self.volume > VOLUME_STEP else 0
+
+    @on(Button.Pressed, "#increase-volume")
+    def increase_media_volume(self):
+        """Increase the stream volume"""
+        increase_volume(VOLUME_STEP)
+        self.volume = self.volume + VOLUME_STEP if self.volume + VOLUME_STEP < 1 else 1
 
     # WATCHERS for dynamic text reloading
     def watch_audio_title(self, old_value, new_value) -> None:
@@ -292,6 +310,10 @@ class MediaPlayer(Container):
         """Change the loop state"""
         self.change_loop_state()
 
+    def action_shuffle(self) -> None:
+        """Toggle shuffle state"""
+        self.toggle_shuffle_state()
+
     def action_stop_song(self) -> None:
         """Stop the lecture"""
         stop()
@@ -299,10 +321,8 @@ class MediaPlayer(Container):
 
     def action_increase_volume(self) -> None:
         """Increase the stream volume"""
-        increase_volume(VOLUME_STEP)
-        self.volume = self.volume + VOLUME_STEP if self.volume + VOLUME_STEP < 1 else 1
+        self.increase_media_volume()
 
     def action_decrease_volume(self) -> None:
         """Decrease the stream volume"""
-        decrease_volume(VOLUME_STEP)
-        self.volume = self.volume - VOLUME_STEP if self.volume > VOLUME_STEP else 0
+        self.decrease_media_volume()

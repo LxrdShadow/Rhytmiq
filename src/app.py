@@ -22,6 +22,7 @@ class Rhytmiq(App):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.media_player = MediaPlayer()
+        self.dark = True
         self.theme = "tokyo-night"
 
     def compose(self) -> ComposeResult:
@@ -36,3 +37,12 @@ class Rhytmiq(App):
         stop()
         pygame.mixer.quit()
         self.exit()
+
+    def action_toggle_dark(self):
+        """Close the application"""
+        if self.dark:
+            self.theme = "catppuccin-latte"
+        else:
+            self.theme = "tokyo-night"
+
+        self.dark = not self.dark

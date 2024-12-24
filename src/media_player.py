@@ -1,3 +1,5 @@
+import random
+
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -40,14 +42,15 @@ class MediaPlayer(Container):
     album: str = reactive("No album info")
     duration: float = reactive(0)
     state: State = reactive(State.STOPPED)
-    shuffle: bool = reactive(True)
+    shuffle: bool = reactive(False)
     loop: Loop = reactive(Loop.NONE)
     volume: float = reactive(0.5)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.playing_song: Path = None
-        self.current_playlist_title: str = None
+        self.current_playlist: list = None
+        self.current_playlist_media: dict[str, str] = {}
         self.classes: str = "media-player-container"
         self.playing_from_playlist: bool = False
         self.monitor_thread: Thread = None
@@ -106,9 +109,9 @@ class MediaPlayer(Container):
 
     def play_from_playlist(self, media: tuple[str]) -> None:
         """Manages playing songs from the playlist."""
-        self.current_playlist_title, song = media
+        self.current_playlist_media["title"], self.current_playlist_media["path"] = media
 
-        self.play_song(song, from_playlist=True)
+        self.play_song(self.current_playlist_media["path"], from_playlist=True)
 
     def monitor_song_end(self) -> None:
         """Monitor when a song ends."""
@@ -163,8 +166,22 @@ class MediaPlayer(Container):
             self.loop = Loop.NONE
 
     @on(Button.Pressed, "#shuffle")
-    def toggle_shuffle_state(self) -> None:
+    async def toggle_shuffle_state(self) -> None:
         """Toggle between shuffle and unshuffle."""
+        if not self.playlist.songs:
+            return
+
+        if not self.shuffle:
+            self.current_playlist = list(self.playlist.songs.items())
+            shuffled_playlist = self.current_playlist[:]
+            random.shuffle(shuffled_playlist)
+            self.playlist.songs = dict(shuffled_playlist)
+        else:
+            self.playlist.songs = dict(self.current_playlist)
+
+        await self.playlist.clear()
+        await self.playlist.populate()
+
         self.shuffle = not self.shuffle
 
     @on(Button.Pressed, "#next")
@@ -182,7 +199,7 @@ class MediaPlayer(Container):
 
         if self.playing_from_playlist and self.loop != Loop.ONE:
             titles = list(self.playlist.songs.keys())
-            current_index = titles.index(self.current_playlist_title)
+            current_index = titles.index(self.current_playlist_media["title"])
 
             if current_index + 1 < len(titles):
                 new_index = current_index + 1
@@ -195,7 +212,8 @@ class MediaPlayer(Container):
 
             next_song_title = titles[new_index]
             next_song_path = self.playlist.songs[next_song_title]
-            self.current_playlist_title = next_song_title
+            self.current_playlist_media["title"] = next_song_title
+            self.current_playlist_media["path"] = next_song_path
 
         self.play_song(next_song_path, from_playlist=self.playing_from_playlist)
 
@@ -211,7 +229,7 @@ class MediaPlayer(Container):
 
         if self.playing_from_playlist and self.loop != Loop.ONE:
             titles = list(self.playlist.songs.keys())
-            current_index = titles.index(self.current_playlist_title)
+            current_index = titles.index(self.current_playlist_media["title"])
 
             if current_index > 0:
                 new_index = current_index - 1
@@ -224,7 +242,8 @@ class MediaPlayer(Container):
 
             previous_song_title = titles[new_index]
             previous_song_path = self.playlist.songs[previous_song_title]
-            self.current_playlist_title = previous_song_title
+            self.current_playlist_media["title"] = previous_song_title
+            self.current_playlist_media["path"] = previous_song_path
 
         self.play_song(previous_song_path, from_playlist=self.playing_from_playlist)
 
@@ -310,9 +329,9 @@ class MediaPlayer(Container):
         """Change the loop state"""
         self.change_loop_state()
 
-    def action_shuffle(self) -> None:
+    async def action_shuffle(self) -> None:
         """Toggle shuffle state"""
-        self.toggle_shuffle_state()
+        await self.toggle_shuffle_state()
 
     def action_stop_song(self) -> None:
         """Stop the lecture"""

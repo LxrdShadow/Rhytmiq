@@ -1,7 +1,6 @@
 
 from pathlib import Path
 from textual import on
-from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import ListView
 
@@ -13,8 +12,6 @@ from utils.helpers import get_metadata
 class Playlist(ListView):
     """A minimal playlist for the player."""
 
-    songs: dict[str, str] = reactive({})
-
     BINDINGS = [
         ("x", "remove_media", "Remove from the playlist"),
     ]
@@ -24,10 +21,7 @@ class Playlist(ListView):
         self.player = player
         self.classes = "list"
         self.border_title = "Playlist"
-
-    async def on_mount(self) -> None:
-        # await self.populate(self.path)
-        ...
+        self.songs: dict[str, str] = {}
 
     @on(ListView.Selected)
     async def handle_selection(self, event: ListView.Selected):

@@ -28,8 +28,8 @@ Rhytmiq is a lightweight, modern music player application built with Python and 
 
 ## Screenshots
 
-<![Dark mode screenshot](https://github.com/user-attachments/assets/31077899-89f3-4844-a5d2-3228d7272d71)
-<![Light mode screenshot](https://github.com/user-attachments/assets/bd354330-83d2-4458-92d2-2d1e5d44c0b4)
+![Dark mode screenshot](https://github.com/user-attachments/assets/31077899-89f3-4844-a5d2-3228d7272d71)
+![Light mode screenshot](https://github.com/user-attachments/assets/bd354330-83d2-4458-92d2-2d1e5d44c0b4)
 
 
 ---

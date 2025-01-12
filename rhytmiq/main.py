@@ -5,12 +5,12 @@ import os
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 
 from app import Rhytmiq
-from config import APP_NAME
+from config import APP_DESCRIPTION, APP_NAME
 
 
 def parse_arguments(args=[]):
     parser = argparse.ArgumentParser(
-        prog=APP_NAME, description="A modern terminal-based music player."
+        prog=APP_NAME, description=APP_DESCRIPTION,
     )
     parser.add_argument("--folder", type=str, help="Path to the choosen folder")
     parser.add_argument("--play", type=str, help="Name of the media to play")

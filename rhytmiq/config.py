@@ -1,7 +1,9 @@
 # Application Info
 APP_NAME = "Rhytmiq"
 APP_VERSION = "1.0.0"
-DEVELOPER = "Idealy Andritiana"
+APP_DESCRIPTION = "A modern terminal-based music player."
+AUTHOR = "Idealy Andritiana"
+AUTHOR_EMAIL = "andritiana.idealy@gmail.com"
 
 # Directories
 ASSET_DIR = "assets"
